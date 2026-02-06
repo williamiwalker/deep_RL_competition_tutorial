@@ -16,9 +16,9 @@ from group_A_policy import PolicyNet  # <<< students change this
 # ------------------------
 GROUP_NAME = "group_C_predator"   # <<< students change this
 AGENT_ROLE = "predator"  # <<< students change this: "predator" or "prey"
-NUM_PREY = 2 # number of prey groups
-NUM_PREDATORS = 1 # number of predator groups
-NUM_EPOCHS = 1000 # <<< students change this: number of training episodes
+NUM_PREY = 1 # number of prey groups
+NUM_PREDATORS = 2 # number of predator groups
+NUM_EPOCHS = 10 # <<< students change this: number of training episodes
 SAVE_PATH = f"{GROUP_NAME}_{AGENT_ROLE}.pt"
 TIMESTEPS_PER_EPISODE = 300 # max timesteps per episode
 
@@ -95,7 +95,7 @@ for episode in range(NUM_EPOCHS):
     R = sum(rewards)
     episode_rewards.append(R)
 
-    loss = -R * torch.stack(log_probs).sum()
+    loss = -torch.tensor(R, dtype=torch.float32).detach() * torch.stack(log_probs).sum()
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
