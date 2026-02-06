@@ -11,8 +11,15 @@ def number_of_submissions(role):
     files = glob.glob("submissions/*_"+role+"_policy.py")
     return len(files)
 
-def load_all_group_names(role):
-    return glob.glob("submissions/*_"+role+"_policy.py")
+def load_all_group_names(role, group_names):
+    files = []
+    for name in group_names:
+        path = f"submissions/{name}_{role}_policy.py"
+        if os.path.exists(path):
+            files.append(path)
+        else:
+            print(f"Warning: no policy file found for group '{name}' with role '{role}'")
+    return files
 
 def load_student_policy(pyfile, weightfile, agent_name, env):
     spec = importlib.util.spec_from_file_location("student_policy", pyfile)
@@ -30,15 +37,51 @@ def load_student_policy(pyfile, weightfile, agent_name, env):
 
 
 
+# def load_all_policies(env, prey_groups, predator_groups):
+#     policies = {}
+#     group_names = {}
+
+#     # load all prey policies
+#     files = sorted(glob.glob("submissions/*_prey_policy.py"))
+#     for i, pyfile in enumerate(files):
+#         group = os.path.basename(pyfile).replace("_prey_policy.py", "")
+#         weightfile = f"submissions/{group}_prey.pt"
+
+#         agent_name = f"agent_{i}"
+#         group_names[agent_name] = group
+#         print('group:', group, 'agent_name:', agent_name)
+#         policies[agent_name] = load_student_policy(pyfile, weightfile, agent_name, env)
+#         print(f"Loaded {group} as {agent_name}")
+
+#     # load all predator policies
+#     files = sorted(glob.glob("submissions/*_predator_policy.py"))
+#     for i, pyfile in enumerate(files):
+#         group = os.path.basename(pyfile).replace("_predator_policy.py", "")
+#         weightfile = f"submissions/{group}_predator.pt"
+
+#         agent_name = f"adversary_{i}"
+#         group_names[agent_name] = group
+#         print('group:', group, 'agent_name:', agent_name)
+#         policies[agent_name] = load_student_policy(pyfile, weightfile, agent_name, env)
+#         print(f"Loaded {group} as {agent_name}")
+
+#     return policies, group_names
+
+
 def load_all_policies(env, prey_groups, predator_groups):
     policies = {}
     group_names = {}
 
     # load all prey policies
-    files = sorted(glob.glob("submissions/*_prey_policy.py"))
-    for i, pyfile in enumerate(files):
-        group = os.path.basename(pyfile).replace("_prey_policy.py", "")
-        weightfile = f"submissions/{group}_prey.pt"
+    # for i, pyfile in enumerate(files):
+    for i, name in enumerate(prey_groups):
+        try:
+            pyfile = f"submissions/{name}_policy.py"
+            group = os.path.basename(pyfile).replace("_policy.py", "")
+            weightfile = f"submissions/{group}_prey.pt"
+        except Exception as e:
+            print(f"Error loading prey policy for group '{name}': {e}")
+            return
 
         agent_name = f"agent_{i}"
         group_names[agent_name] = group
@@ -47,10 +90,16 @@ def load_all_policies(env, prey_groups, predator_groups):
         print(f"Loaded {group} as {agent_name}")
 
     # load all predator policies
-    files = sorted(glob.glob("submissions/*_predator_policy.py"))
-    for i, pyfile in enumerate(files):
-        group = os.path.basename(pyfile).replace("_predator_policy.py", "")
-        weightfile = f"submissions/{group}_predator.pt"
+    # files = sorted(glob.glob("submissions/*_predator_policy.py"))
+    # for i, pyfile in enumerate(files):
+    for i, name in enumerate(predator_groups):
+        try:
+            pyfile = f"submissions/{name}_policy.py"
+            group = os.path.basename(pyfile).replace("_policy.py", "")
+            weightfile = f"submissions/{group}_predator.pt"
+        except Exception as e:
+            print(f"Error loading predator policy for group '{name}': {e}")
+            return
 
         agent_name = f"adversary_{i}"
         group_names[agent_name] = group

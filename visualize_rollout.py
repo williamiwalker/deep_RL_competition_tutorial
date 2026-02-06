@@ -14,81 +14,47 @@ import torch
 import pygame
 import numpy as np
 from pettingzoo_wrapper import make_env
-from tournament_loader import load_default_policies
+from tournament_loader import load_default_policies, load_all_policies
 
 
-def visualize_rollout(
-    model_path,
-    agent_role="prey",
-    policy_module="winners_prey_policy",
-    num_prey=1,
-    num_predators=2,
-    num_timesteps=500,
-    episode_length=300
-):
+
+# prey_group_names = ['winners']
+# predator_group_names = ['trained_beast_2','default']
+
+# prey_group_names = ['default']
+# predator_group_names = ['winners','trained_beast_2']
+
+prey_group_names = ['winners']
+predator_group_names = ['winners','trained_beast_2']
+
+
+    
+def visualize_rollout(prey_groups, predator_groups, num_timesteps=500, episode_length=300):
+
+
+    
+
     """
     Visualize a trained agent playing in the Tag environment using pygame.
     """
+
+    num_prey = len(prey_groups)
+    num_predators = len(predator_groups)
 
     # Set device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    # Determine agent ID
-    if agent_role == "prey":
-        agent_id = "agent_0"
-        print("Controlling: agent_0 (prey)")
-    else:
-        agent_id = "adversary_0"
-        print("Controlling: adversary_0 (predator)")
 
     # Create environment
     env = make_env(episode_length, num_predators=num_predators, num_preys=num_prey)
-    obs_dim = env.observation_space(agent_id)
-    act_dim = env.action_space(agent_id)
+
 
     print(f"Environment: {num_predators} predators, {num_prey} prey")
-    print(f"Observation dim: {obs_dim}, Action dim: {act_dim}")
+
 
     # Load the policy network
-    try:
-        policy_module_obj = __import__(policy_module)
-
-        # Check if it's an actor-critic model or regular policy
-        if hasattr(policy_module_obj, 'ActorCriticNet') and 'actor_critic' in model_path:
-            print("Loading Actor-Critic model...")
-            PolicyNet = policy_module_obj.ActorCriticNet
-            is_actor_critic = True
-        else:
-            print("Loading standard policy model...")
-            PolicyNet = policy_module_obj.PolicyNet
-            is_actor_critic = False
-
-        policy = PolicyNet(obs_dim, act_dim).to(device)
-        policy.load_state_dict(torch.load(model_path, map_location=device))
-        policy.eval()
-        print(f"Loaded model from: {model_path}")
-
-    except Exception as e:
-        print(f"Error loading policy: {e}")
-        return
-
-    # Create policy wrapper for actor-critic
-    if is_actor_critic:
-        original_policy = policy
-        def policy_wrapper(obs):
-            with torch.no_grad():
-                action_probs, _ = original_policy(obs)
-            return action_probs
-        policy = policy_wrapper
-
-    # Load default policies for other agents
-    def random_policy(obs):
-        return torch.rand(act_dim).to(device)
-
-    default_policies = load_default_policies(
-        env, num_prey=num_prey, num_predators=num_predators, random_policy=random_policy
-    )
+    policies, group_names = load_all_policies(env, prey_groups, predator_groups)
 
     # Initialize pygame
     pygame.init()
@@ -110,10 +76,6 @@ def visualize_rollout(
 
     obs = env.reset()
     scores = {agent: 0.0 for agent in env.agents}
-    group_names = {
-        agent: "YOUR AGENT" if agent == agent_id else "CPU"
-        for agent in env.agents
-    }
 
     print("\n" + "="*60)
     print("Starting visualization (close window to exit)...")
@@ -134,11 +96,11 @@ def visualize_rollout(
             o = torch.tensor(ob, dtype=torch.float32, device=device)
 
             with torch.no_grad():
-                if agent == agent_id:
-                    action_probs = policy(o)
-                else:
-                    action_probs = default_policies[agent](o)
-
+                # if agent == agent_id:
+                #     action_probs = policy(o)
+                # else:
+                #     action_probs = default_policies[agent](o)
+                action_probs = policies[agent](o)  # Use loaded policies for all agents
                 actions[agent] = action_probs.cpu().numpy()
 
         # Step environment
@@ -394,5 +356,8 @@ def main():
     )
 
 
+def main_tournament():
+    visualize_rollout(prey_group_names, predator_group_names, num_timesteps=500, episode_length=300)
+
 if __name__ == "__main__":
-    main()
+    main_tournament()
